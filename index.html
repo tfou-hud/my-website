@@ -1061,8 +1061,17 @@ function createNavButton(index, targetId, type) {
     button.innerText = index;
     button.onclick = (e) => {
         e.preventDefault();
-        // 平滑滚动到题目位置
-        document.getElementById(targetId).scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const el = document.getElementById(targetId);
+        if (!el) return;
+        // 如果是小屏幕，先关闭移动端侧栏以恢复页面滚动，然后再滚动到目标位置
+        if (typeof isSmallScreen === 'function' && isSmallScreen()) {
+            try { closeMobileSidebar(); } catch (err) { /* ignore */ }
+            setTimeout(() => {
+                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 320);
+        } else {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
     };
     return button;
 }
