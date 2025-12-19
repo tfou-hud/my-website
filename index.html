@@ -1059,35 +1059,48 @@ function createNavButton(index, targetId, type) {
     button.className = 'q-nav-button ' + (type === 'single' ? 'nav-single' : 'nav-multi');
     button.id = `nav_q_${index}`;
     button.innerText = index;
-    button.onclick = (e) => {
-        e.preventDefault();
+    // 把导航行为封装为可复用函数，用于 click 和 touchend
+    const doNav = (e) => {
+        if (e && e.preventDefault) {
+            e.preventDefault();
+            if (e.stopPropagation) e.stopPropagation();
+        }
+        console.log('[nav] clicked', index, targetId, 'isSmall=', (typeof isSmallScreen === 'function' ? isSmallScreen() : 'nofn'));
         const el = document.getElementById(targetId);
-        if (!el) return;
-        // 如果是小屏幕，先关闭移动端侧栏以恢复页面滚动，然后再等待页面解锁后滚动到目标位置（更可靠）
+        if (!el) {
+            console.warn('[nav] target not found', targetId);
+            return;
+        }
+
         if (typeof isSmallScreen === 'function' && isSmallScreen()) {
-            try { closeMobileSidebar(); } catch (err) { /* ignore */ }
+            try { closeMobileSidebar(); console.log('[nav] closeMobileSidebar called'); } catch (err) { console.error(err); }
 
             const start = Date.now();
-            const maxWait = 800; // 最长等待时间（ms），避免无限等待
+            const maxWait = 800;
 
             const tryScroll = () => {
                 const body = document.body;
-                // 当 body 不再被固定定位时，执行滚动；否则继续等待一次动画帧或超时后直接滚动
                 if (!body.style.position || body.style.position === '') {
+                    console.log('[nav] body unlocked, scrolling to', targetId);
                     el.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 } else if (Date.now() - start < maxWait) {
                     requestAnimationFrame(tryScroll);
                 } else {
+                    console.log('[nav] timeout, forcing scroll to', targetId);
                     el.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
             };
 
-            // 给 closeMobileSidebar 一次短暂的执行时间再开始检查
             setTimeout(tryScroll, 40);
         } else {
+            console.log('[nav] desktop scroll to', targetId);
             el.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
     };
+
+    // 绑定事件：click 用于桌面和部分移动设备，touchend 帮助更早捕获触摸交互
+    button.addEventListener('click', doNav, { passive: false });
+    button.addEventListener('touchend', function(e){ doNav(e); }, { passive: false });
     return button;
 }
 
@@ -1755,13 +1768,18 @@ function setupMobileNavigation() {
     // 始终绑定，点击导航后若为移动端则延迟关闭抽屉以允许滚动动画完成
     const navButtons = document.querySelectorAll('.q-nav-button');
     function mobileNavHandler() {
+        console.log('[mobileNavHandler] fired');
         if (isSmallScreen()) {
-            setTimeout(() => closeMobileSidebar(), 300);
+            console.log('[mobileNavHandler] mobile detected, will close sidebar');
+            setTimeout(() => { closeMobileSidebar(); console.log('[mobileNavHandler] sidebar closed'); }, 300);
         }
     }
     navButtons.forEach(btn => {
         btn.removeEventListener('click', mobileNavHandler);
         btn.addEventListener('click', mobileNavHandler);
+        // 兼容触屏设备：当 touchend 发生时也触发移动端关闭行为
+        btn.removeEventListener('touchend', mobileNavHandler);
+        btn.addEventListener('touchend', mobileNavHandler, { passive: true });
     });
 }
 
