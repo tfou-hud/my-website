@@ -1072,7 +1072,24 @@ function createNavButton(index, targetId, type) {
             return;
         }
 
+        // Helper: smooth-scroll to element using window.scrollTo with calculated top (more reliable on mobile)
+        const scrollToElement = (element) => {
+            try {
+                const rect = element.getBoundingClientRect();
+                const targetY = rect.top + (window.pageYOffset || document.documentElement.scrollTop || 0);
+                // subtract a small offset to account for any fixed header (if exists)
+                const header = document.querySelector('.header-hero');
+                const headerHeight = header ? header.getBoundingClientRect().height : 0;
+                const finalY = Math.max(0, targetY - headerHeight - 8);
+                window.scrollTo({ top: finalY, behavior: 'smooth' });
+            } catch (err) {
+                try { element.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { console.warn('scroll fallback failed', e); }
+            }
+        };
+
         if (typeof isSmallScreen === 'function' && isSmallScreen()) {
+            // 标记由导航触发的侧栏关闭，防止 setupMobileNavigation 的延迟关闭再次触发并恢复滚动位置
+            try { window._navCloseInProgress = Date.now(); } catch (e) { /* ignore */ }
             try { closeMobileSidebar(); console.log('[nav] closeMobileSidebar called'); } catch (err) { console.error(err); }
 
             const start = Date.now();
@@ -1082,19 +1099,22 @@ function createNavButton(index, targetId, type) {
                 const body = document.body;
                 if (!body.style.position || body.style.position === '') {
                     console.log('[nav] body unlocked, scrolling to', targetId);
-                    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    scrollToElement(el);
                 } else if (Date.now() - start < maxWait) {
                     requestAnimationFrame(tryScroll);
                 } else {
                     console.log('[nav] timeout, forcing scroll to', targetId);
-                    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    scrollToElement(el);
                 }
             };
 
             setTimeout(tryScroll, 40);
+
+            // 在一段时间后清除标记
+            setTimeout(() => { try { window._navCloseInProgress = 0; } catch (e) {} }, 1200);
         } else {
             console.log('[nav] desktop scroll to', targetId);
-            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            scrollToElement(el);
         }
     };
 
@@ -1769,6 +1789,11 @@ function setupMobileNavigation() {
     const navButtons = document.querySelectorAll('.q-nav-button');
     function mobileNavHandler() {
         console.log('[mobileNavHandler] fired');
+        // 如果近期有导航触发的侧栏关闭标记，则忽略这个延迟关闭（避免覆盖滚动）
+        if (window._navCloseInProgress && (Date.now() - window._navCloseInProgress) < 1200) {
+            console.log('[mobileNavHandler] suppressed by navCloseInProgress');
+            return;
+        }
         if (isSmallScreen()) {
             console.log('[mobileNavHandler] mobile detected, will close sidebar');
             setTimeout(() => { closeMobileSidebar(); console.log('[mobileNavHandler] sidebar closed'); }, 300);
