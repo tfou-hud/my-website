@@ -3,172 +3,226 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>学习中心 - 导航首页</title>
+    <title>学习复习中心</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         :root {
-            --primary-gradient: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
-            --bg-color: #f7f9fc;
+            --bg-color: #fafafa;
             --card-bg: #ffffff;
-            --text-main: #1a1a1a;
-            --text-secondary: #7f8c8d;
-            --accent-purple: #6a11cb;
-            --accent-blue: #2575fc;
+            --text-primary: #18181b;
+            --text-secondary: #71717a;
+            --accent-blue: #3b82f6;
+            --accent-green: #10b981;
+            --border-color: #e4e4e7;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --radius: 16px;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             background-color: var(--bg-color);
+            color: var(--text-primary);
             margin: 0;
             padding: 0;
+            line-height: 1.5;
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
-            min-height: 100vh;
+            align-items: center;
         }
 
-        /* 顶部欢迎区 - 采用蓝紫色渐变 */
         header {
-            background: var(--primary-gradient);
-            padding: 60px 20px;
-            color: white;
-            text-align: left;
-            border-radius: 0 0 30px 30px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        }
-
-        header h1 {
-            margin: 0;
-            font-size: 26px;
-            font-weight: bold;
-        }
-
-        header p {
-            margin-top: 10px;
-            opacity: 0.9;
-            font-size: 14px;
-            line-height: 1.5;
-        }
-
-        /* 菜单容器 */
-        .menu-container {
-            padding: 30px 15px;
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 18px;
-            max-width: 500px;
-            margin: -20px auto 0 auto; /* 向上偏移产生重叠效果 */
             width: 100%;
-            box-sizing: border-box;
+            max-width: 1000px;
+            padding: 4rem 1.5rem 2rem;
+            text-align: left;
         }
 
-        /* 导航卡片样式 */
-        .nav-card {
+        h1 {
+            font-size: 2.25rem;
+            font-weight: 800;
+            letter-spacing: -0.025em;
+            margin: 0 0 0.5rem 0;
+            background: linear-gradient(to right, #18181b, #52525b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            padding: 0 1.5rem 4rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+            gap: 2rem;
+        }
+
+        .card {
             background: var(--card-bg);
-            border-radius: 18px;
-            padding: 22px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 2rem;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-hover);
+            border-color: transparent;
+        }
+
+        .card-header {
             display: flex;
             align-items: center;
-            text-decoration: none;
-            transition: all 0.2s ease;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-            border: 1px solid rgba(255,255,255,0.8);
+            margin-bottom: 2rem;
         }
 
-        /* 点击动效 */
-        .nav-card:active {
-            transform: scale(0.96);
-            background-color: #f0f3ff;
-        }
-
-        /* 图标区域样式 */
         .icon-box {
-            width: 56px;
-            height: 56px;
-            border-radius: 14px;
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 26px;
-            margin-right: 18px;
-            flex-shrink: 0;
+            font-size: 1.25rem;
+            margin-right: 1rem;
         }
 
-        /* 针对大题和选择题区分图标底色 */
-        .icon-dati {
-            background: rgba(106, 17, 203, 0.1);
-            color: var(--accent-purple);
+        .xi-icon {
+            background-color: #fee2e2;
+            color: #ef4444;
         }
 
-        .icon-xuanze {
-            background: rgba(37, 117, 252, 0.1);
-            color: var(--accent-blue);
+        .os-icon {
+            background-color: #dbeafe;
+            color: #3b82f6;
         }
 
-        /* 文字区域 */
-        .info-box {
-            flex-grow: 1;
-        }
-
-        .info-box h2 {
-            margin: 0;
-            font-size: 18px;
-            color: var(--text-main);
+        .card-title {
+            font-size: 1.25rem;
             font-weight: 600;
+            margin: 0;
+            color: var(--text-primary);
         }
 
-        .info-box p {
-            margin: 4px 0 0 0;
-            font-size: 13px;
+        .card-desc {
+            font-size: 0.875rem;
             color: var(--text-secondary);
+            margin: 0;
         }
 
-        /* 右侧箭头图标 */
-        .arrow {
-            color: #d1d1d1;
-            font-size: 18px;
-            font-weight: bold;
+        .link-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
         }
 
-        /* 底部信息 */
-        footer {
-            margin-top: auto;
-            padding: 40px 20px;
+        .link-btn {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.25rem;
+            background-color: #f4f4f5;
+            color: var(--text-primary);
+            text-decoration: none;
+            border-radius: 12px;
+            font-weight: 500;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+
+        .link-btn:hover {
+            background-color: #ffffff;
+            border-color: var(--border-color);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .link-btn i.arrow {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            transition: transform 0.2s;
+        }
+
+        .link-btn:hover i.arrow {
+            transform: translateX(4px);
+            color: var(--text-primary);
+        }
+
+        .link-icon {
+            margin-right: 0.75rem;
+            color: var(--text-secondary);
+            width: 20px;
             text-align: center;
-            color: #bdc3c7;
-            font-size: 12px;
-            letter-spacing: 1px;
+        }
+
+        @media (max-width: 640px) {
+            header { padding-top: 2rem; }
+            h1 { font-size: 1.75rem; }
+            .container { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
-
     <header>
-        <h1>学习中心</h1>
-        <p>每一份努力，都是通往成功的阶梯。<br>请选择您要复习的模块：</p>
+        <h1>复习中心</h1>
+        <div class="subtitle">选择科目开始你的学习之旅</div>
     </header>
 
-    <div class="menu-container">
-        <a href="大题.html" class="nav-card">
-            <div class="icon-box icon-dati">📝</div>
-            <div class="info-box">
-                <h2>大题练习</h2>
-                <p>15 道重点简答题全解析</p>
+    <div class="container">
+        <!-- 习近平复习 -->
+        <div class="card">
+            <div class="card-header">
+                <div class="icon-box xi-icon">
+                    <i class="fas fa-book"></i>
+                </div>
+                <div>
+                    <h2 class="card-title">习近平复习</h2>
+                    <p class="card-desc">思想政治理论</p>
+                </div>
             </div>
-            <div class="arrow">❯</div>
-        </a>
+            <div class="link-group">
+                <a href="习近平大题.html" class="link-btn">
+                    <span><i class="fas fa-pen link-icon"></i>大题复习</span>
+                    <i class="fas fa-chevron-right arrow"></i>
+                </a>
+                <a href="习近平选择.html" class="link-btn">
+                    <span><i class="fas fa-check-square link-icon"></i>选择题复习</span>
+                    <i class="fas fa-chevron-right arrow"></i>
+                </a>
+            </div>
+        </div>
 
-        <a href="选择题.html" class="nav-card">
-            <div class="icon-box icon-xuanze">✔</div>
-            <div class="info-box">
-                <h2>选择题库</h2>
-                <p>核心考点自测与知识点巩固</p>
+        <!-- 操作系统复习 -->
+        <div class="card">
+            <div class="card-header">
+                <div class="icon-box os-icon">
+                    <i class="fas fa-laptop-code"></i>
+                </div>
+                <div>
+                    <h2 class="card-title">操作系统</h2>
+                    <p class="card-desc">计算机专业核心课程</p>
+                </div>
             </div>
-            <div class="arrow">❯</div>
-        </a>
+            <div class="link-group">
+                <a href="操作系统选择.html" class="link-btn">
+                    <span><i class="fas fa-list-ul link-icon"></i>选择题复习</span>
+                    <i class="fas fa-chevron-right arrow"></i>
+                </a>
+                <a href="操作系统填空.html" class="link-btn">
+                    <span><i class="fas fa-keyboard link-icon"></i>填空题复习</span>
+                    <i class="fas fa-chevron-right arrow"></i>
+                </a>
+            </div>
+        </div>
     </div>
-
-    <footer>
-        © 2025 思想政治理论学习平台
-    </footer>
-
 </body>
 </html>
