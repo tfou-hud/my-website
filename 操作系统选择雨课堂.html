@@ -1,0 +1,2052 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>操作系统的在线答题系统（含实时答题卡）</title>
+
+    <style>
+
+        :root {
+    /* 主色调系列 - 蓝白 */
+    --primary: #1e88ff;           /* 主色（蓝） */
+    --primary-dark: #0b63d1;      /* 深色版本 */
+    --primary-light: #e6f4ff;     /* 浅色版本 */
+    --primary-pale: #f0f8ff;      /* 极淡版本 */
+    --primary-medium: #60a5fa;    /* 中间色 */
+    
+    /* 文字颜色层级 */
+    --text-main: #0b2140;         /* 主文字 - 深蓝/海军 */
+    --text-sub: #516f8f;          /* 次级文字 - 蓝灰 */
+    --text-light: #8fa6c6;        /* 轻文字 - 浅蓝灰 */
+    --text-accent: #1e88ff;       /* 强调文字 - 主色 */
+    
+    /* 背景色层级 */
+    --bg-body: #f8fbff;           /* 页面背景 - 极浅蓝 */
+    --bg-card: #ffffff;           /* 卡片背景 - 纯白 */
+    --bg-hover: #f1f6ff;          /* 悬停背景 - 浅蓝 */
+    --bg-active: #e6f4ff;         /* 活跃背景 - 极淡蓝 */
+    
+    /* 边框色层级 */
+    --border: #e6eefb;            /* 常规边框（淡蓝） */
+    --border-light: #f1f6ff;      /* 轻边框 */
+    --border-strong: #cfe3ff;     /* 强边框 */
+    
+    /* 成功色系列 */
+    --success: #10b981;           /* 成功色（保留绿） */
+    --success-light: #6ee7b7;     /* 浅成功色 */
+    --success-bg: #d1fae5;        /* 成功背景 */
+    --success-pale: #ecfdf5;      /* 极淡成功背景 */
+    
+    /* 错误色系列 */
+    --error: #ef4444;             /* 错误色（保留） */
+    --error-light: #f87171;       /* 浅错误色 */
+    --error-bg: #fee2e2;          /* 错误背景 */
+    --error-pale: #fef2f2;        /* 极淡错误背景 */
+    
+    /* 警告色系列 */
+    --warning: #f59e0b;           /* 警告色 */
+    --warning-light: #fbbf24;     /* 浅警告色 */
+    --warning-bg: #fef3c7;        /* 警告背景 */
+    
+    /* 中立色系列 */
+    --gray-50: #f8fbff;
+    --gray-100: #f1f6ff;
+    --gray-200: #e6eefb;
+    --gray-300: #d1dfee;
+    --gray-400: #9fb3ce;
+    --gray-500: #6b7f9b;
+    --gray-600: #4a5e78;
+    
+    /* 阴影 */
+    --shadow-sm: 0 1px 2px 0 rgba(10, 25, 45, 0.04);
+    --shadow-md: 0 6px 20px -6px rgba(14,136,255,0.18), 0 2px 6px -2px rgba(10,25,45,0.06);
+    --shadow-lg: 0 12px 30px -10px rgba(14,136,255,0.12), 0 6px 12px -6px rgba(10,25,45,0.06);
+    
+    /* 圆角 */
+    --radius: 12px;
+    --radius-sm: 6px;
+    --radius-lg: 16px;
+    
+    /* 布局 */
+    --sidebar-width: 300px;
+    --sidebar-collapsed-width: 56px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background-color: var(--bg-body);
+    color: var(--text-main);
+    line-height: 1.6;
+    padding-bottom: 80px;
+}
+
+/* ==================== 整体布局 ==================== */
+.page-wrapper {
+    --effective-sidebar: var(--sidebar-width);
+    max-width: 1200px;
+    margin: 0 auto; /* 水平居中 */
+    padding: 0 15px;
+    padding-right: calc(var(--effective-sidebar) + 40px); /* 给固定侧栏预留空间 */
+    display: flex;
+    justify-content: center; /* 主体居中 */
+    gap: 20px;
+}
+
+/* 当侧栏折叠时，减小右侧预留空间 */
+body.sidebar-collapsed .page-wrapper { padding-right: calc(var(--sidebar-collapsed-width) + 40px); }
+
+.main-content {
+    flex-grow: 1;
+    max-width: 880px;
+    width: 100%;
+    min-width: 320px;
+}
+
+/* 顶部 Header */
+.header-hero {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    color: white;
+    padding: 50px 20px 70px;
+    text-align: center;
+    border-radius: 0 0 30px 30px;
+    box-shadow: 0 10px 30px rgba(14,136,255,0.18);
+    margin-bottom: -30px;
+    /* 将头部内容与主区域对齐（视觉上仍为全宽背景） */
+    display: flex; justify-content: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.header-hero::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -10%;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    border-radius: 50%;
+}
+
+.header-hero h1 { 
+    font-size: 2rem; 
+    margin-bottom: 15px; 
+    font-weight: 700;
+    position: relative;
+    z-index: 2;
+    letter-spacing: 0.5px;
+}
+
+.header-hero p { 
+    opacity: 0.95; 
+    font-size: 1rem;
+    position: relative;
+    z-index: 2;
+    letter-spacing: 0.3px;
+    line-height: 1.5;
+}
+
+/* 计分板 */
+.score-card {
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    padding: 20px;
+    text-align: center;
+    box-shadow: var(--shadow-md);
+    margin-bottom: 30px;
+    position: relative;
+    z-index: 10;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid var(--border-light);
+    transition: all 0.3s ease;
+}
+
+.score-card:hover {
+    box-shadow: var(--shadow-lg);
+    border-color: var(--primary-light);
+}
+
+.score-info { text-align: left; }
+.score-info span { display: block; color: var(--text-light); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; }
+.score-info strong { font-size: 1.1rem; color: var(--text-main); margin-top: 4px; }
+
+.final-score {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--primary);
+    display: none;
+}
+
+/* 计时器样式 */
+.timer-widget {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    color: white;
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    box-shadow: var(--shadow-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font-weight: 600;
+    margin: 12px 0 16px 0;
+    position: relative;
+    overflow: hidden;
+    flex-direction: column;
+    text-align: center;
+}
+
+.timer-widget::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+
+.timer-icon {
+    font-size: 1.3rem;
+    animation: pulse 2s ease-in-out infinite;
+    position: relative;
+    z-index: 1;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+.timer-label {
+    font-size: 0.8rem;
+    opacity: 0.9;
+    position: relative;
+    z-index: 1;
+}
+
+.timer-display {
+    font-size: 1.5rem;
+    font-weight: 800;
+    font-family: 'Courier New', monospace;
+    position: relative;
+    z-index: 1;
+}
+
+/* 题型标题 */
+.section-badge {
+    display: inline-block;
+    background: var(--primary-dark);
+    color: white;
+    padding: 8px 16px;
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+    margin: 30px 0 15px;
+    font-weight: 600;
+    scroll-margin-top: 50px;
+    letter-spacing: 0.3px;
+}
+
+/* 题目卡片 */
+.question-card {
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow-sm);
+    border: 2px solid var(--border-light);
+    transition: all 0.3s ease;
+    scroll-margin-top: 70px;
+    position: relative;
+}
+
+.question-card:hover {
+    box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+    border-color: var(--primary-light);
+}
+
+.question-text {
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin-bottom: 20px;
+    color: var(--text-main);
+    letter-spacing: 0.2px;
+}
+.q-tag {
+    font-size: 0.75rem; 
+    color: var(--primary); 
+    background: var(--primary-pale);
+    padding: 4px 8px; 
+    border-radius: 4px; 
+    margin-right: 8px; 
+    vertical-align: middle;
+    font-weight: 600;
+}
+
+/* 选项样式 */
+.options-group { display: flex; flex-direction: column; gap: 10px; }
+.option-label {
+    position: relative; display: flex; align-items: center;
+    padding: 14px 16px; border: 2px solid var(--border);
+    border-radius: 8px; cursor: pointer; transition: all 0.2s ease; background: var(--bg-card);
+}
+
+.option-label:hover {
+    border-color: var(--primary-medium);
+    background-color: var(--bg-active);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.option-label input { position: absolute; opacity: 0; cursor: pointer; height: 0; width: 0; }
+.checkmark {
+    height: 20px; width: 20px; background-color: var(--bg-card);
+    border: 2px solid var(--gray-300); border-radius: 50%; margin-right: 15px; flex-shrink: 0;
+    position: relative; transition: all 0.2s;
+}
+input[type="checkbox"] ~ .checkmark { border-radius: 4px; }
+.option-label:has(input:checked) { 
+    border-color: var(--primary); 
+    background-color: var(--primary-pale);
+    box-shadow: 0 2px 8px rgba(79, 70, 229, 0.15);
+}
+.option-label input:checked ~ .checkmark { background-color: var(--primary); border-color: var(--primary); }
+.option-label input:checked ~ .checkmark::after { content: ""; position: absolute; display: block; }
+input[type="radio"] ~ .checkmark::after { top: 5px; left: 5px; width: 6px; height: 6px; border-radius: 50%; background: white; }
+input[type="checkbox"] ~ .checkmark::after { left: 6px; top: 2px; width: 4px; height: 9px; border: solid white; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+
+/* 结果反馈 */
+.result-box {
+    margin-top: 15px; 
+    padding: 12px 16px; 
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem; 
+    display: none; 
+    animation: fadeIn 0.3s ease;
+    border-left: 4px solid transparent;
+}
+@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+.question-card.correct { border-color: var(--success); }
+.question-card.correct .result-box { 
+    background-color: var(--success-pale); 
+    color: #047857; 
+    border-color: var(--success);
+    border-left-color: var(--success);
+}
+.question-card.incorrect { border-color: var(--error); }
+.question-card.incorrect .result-box { 
+    background-color: var(--error-pale); 
+    color: #dc2626; 
+    border-color: var(--error);
+    border-left-color: var(--error);
+}
+
+/* ==================== 答题卡导航栏 ==================== */
+.sidebar {
+    width: var(--sidebar-width);
+    position: fixed;
+    right: 20px;
+    top: 20px;
+    height: calc(100vh - 40px);
+    padding: 20px 16px;
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+    z-index: 120;
+    transition: width 0.22s ease, right 0.22s ease;
+}
+
+.sidebar.collapsed { width: var(--sidebar-collapsed-width); }
+.sidebar .nav-section .question-nav-grid { padding-right: 6px; }
+
+/* Toggle button */
+.sidebar-toggle {
+    position: absolute;
+    left: -22px;
+    top: 16px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: var(--bg-card);
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: var(--text-main);
+    transform: rotate(0deg);
+    transition: all 0.18s ease;
+}
+
+.sidebar-toggle:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    box-shadow: 0 2px 8px rgba(79, 70, 229, 0.15);
+}
+.sidebar.collapsed .sidebar-toggle { transform: rotate(180deg); }
+
+/* 手机端侧栏关闭按钮 */
+.mobile-close-btn {
+    display: none;
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    border: 1px solid var(--border-light);
+    background: var(--bg-card);
+    color: var(--text-main);
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+}
+.mobile-close-btn:hover { border-color: var(--primary); color: var(--primary-dark); box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
+
+.sidebar h3 {
+    font-size: 1.1rem;
+    margin-bottom: 15px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--primary);
+    color: var(--primary);
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.question-nav-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: flex-start;
+}
+
+.nav-section { margin-bottom: 10px; }
+.nav-section-title { font-size: 0.95rem; color: var(--text-main); margin-bottom: 8px; font-weight: 700; letter-spacing: 0.3px; }
+.nav-section hr { margin: 8px 0; border: none; height: 1px; background: var(--border); }
+
+/* 每个小节内的导航网格独立可滚动，优化尺寸 */
+.nav-section .question-nav-grid {
+    max-height: calc((100vh - 140px) / 2);
+    overflow-y: auto;
+    padding: 6px; /* 给内部留白 */
+    gap: 8px;
+}
+
+/* 折叠态隐藏小节标题并让网格填满 */
+.sidebar.collapsed .nav-section-title { display: none; }
+.sidebar.collapsed .nav-section .question-nav-grid { max-height: calc(100vh - 56px); }
+
+.q-nav-button {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    background-color: var(--gray-100); /* 未作答颜色 */
+    color: var(--text-light);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    text-decoration: none;
+    flex-shrink: 0;
+    font-size: 0.95rem;
+    border: 2px solid var(--gray-200);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.q-nav-button:hover {
+    background-color: var(--gray-200);
+    color: var(--text-main);
+    border-color: var(--gray-300);
+    transform: translateY(-2px);
+    box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+}
+
+.q-nav-button.answered {
+    background-color: var(--primary);
+    color: white;
+    border-color: var(--primary);
+    box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
+}
+
+/* 当侧栏折叠，按钮再紧凑一些 */
+.sidebar.collapsed .q-nav-button { width: 32px; height: 32px; font-size: 0.88rem; }
+
+/* 更紧凑的多选/单选区分样式（可继续调整） */
+/* .q-nav-button.nav-single { } */
+/* .q-nav-button.nav-multi { } */
+
+/* 提交后的状态 */
+.q-nav-button.correct {
+    background-color: var(--success);
+    color: white;
+    border-color: var(--success);
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+.q-nav-button.incorrect {
+    background-color: var(--error);
+    color: white;
+    border-color: var(--error);
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+}
+
+/* 底部固定操作栏 */
+.bottom-bar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--bg-card);
+    padding: 15px;
+    box-shadow: 0 -4px 10px rgba(0,0,0,0.05);
+    display: flex; 
+    justify-content: center; 
+    gap: 15px; 
+    z-index: 100;
+    border-top: 1px solid var(--border);
+}
+
+.btn {
+    padding: 12px 30px; 
+    border-radius: 30px; 
+    font-weight: 600; 
+    cursor: pointer;
+    border: none; 
+    transition: all 0.2s ease;
+    font-size: 1rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+}
+
+.btn:active {
+    transform: translateY(0px);
+}
+
+.btn-primary {
+    background-color: var(--primary); 
+    color: white;
+    box-shadow: 0 4px 6px rgba(79, 70, 229, 0.3); 
+    flex: 1; 
+    max-width: 300px;
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-dark);
+}
+
+.btn-secondary { 
+    background-color: var(--bg-hover); 
+    color: var(--text-main);
+    border: 1px solid var(--border);
+}
+
+.btn-secondary:hover {
+    background-color: var(--gray-200);
+    border-color: var(--border-strong);
+}
+
+/* 媒体查询：适配中小屏与微屏，增强响应式体验 */
+@media (max-width: 1200px) {
+    .page-wrapper { max-width: 100%; padding: 0 12px; }
+}
+
+@media (max-width: 1000px) {
+    .page-wrapper {
+        flex-direction: column;
+        gap: 16px;
+        align-items: stretch;
+        padding-bottom: 140px; /* 给底部固定栏留出空间 */
+        padding: 0 12px 140px 12px;
+    }
+    
+    .sidebar {
+        display: none !important;
+        position: fixed;
+        right: -85vw;
+        top: 0;
+        width: 85vw;
+        height: 100vh;
+        background: var(--bg-card);
+        border-radius: 0;
+        z-index: 999;
+        padding: 20px;
+        overflow-y: auto;
+        box-shadow: -4px 0 12px rgba(0,0,0,0.15);
+        transition: right 0.3s ease;
+        max-width: 85vw;
+        box-sizing: border-box;
+    }
+    
+    .sidebar.mobile-open {
+        display: block !important;
+        right: 0;
+    }
+    
+    .sidebar-toggle {
+        left: auto;
+        right: 20px;
+        top: 20px;
+        width: 40px;
+        height: 40px;
+        z-index: 1001;
+    }
+    
+    /* 打开答题卡时的页面蒙层 */
+    body.sidebar-open {
+        overflow: hidden;
+    }
+    
+    body.sidebar-open::before {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.3);
+        z-index: 998;
+        animation: fadeIn 0.3s ease;
+    }
+    
+    .mobile-answer-card-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+    
+    .main-content {
+        max-width: 100%;
+        min-width: auto;
+    }
+    .header-hero { padding: 28px 16px 40px; }
+    .header-hero h1 { font-size: 1.4rem; }
+    .score-card { padding: 16px; flex-direction: column; gap: 8px; align-items: flex-start; }
+    .question-card { padding: 18px; }
+    .question-text { font-size: 1rem; }
+    .option-label { padding: 10px 12px; }
+    .checkmark { margin-right: 12px; height: 18px; width: 18px; }
+    .q-nav-button { width: 36px; height: 36px; }
+    .bottom-bar { flex-direction: column; gap: 10px; padding: 12px; }
+    .btn { width: 100%; max-width: none; }
+}
+
+@media (max-width: 480px) {
+    html { font-size: 14px; }
+    .header-hero { padding: 22px 12px 28px; }
+    .header-hero h1 { font-size: 1.25rem; }
+    .timer-widget { padding: 10px 12px; margin: 8px 0 12px 0; }
+    .timer-icon { font-size: 1.1rem; }
+    .timer-label { font-size: 0.75rem; }
+    .timer-display { font-size: 1.3rem; }
+    .score-card { padding: 12px; }
+    .section-badge { font-size: 0.85rem; padding: 5px 10px; }
+    .question-card { padding: 14px; }
+    .question-text { font-size: 0.98rem; margin-bottom: 12px; }
+    .option-label { padding: 10px; }
+    .options-group { gap: 8px; }
+    
+    /* 手机底部按钮栏优化 */
+    .bottom-bar { 
+        padding: 8px; 
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+    .btn { 
+        padding: 10px 12px; 
+        border-radius: 8px;
+        font-size: 0.9rem;
+        flex: 1;
+        min-width: 70px;
+    }
+    
+    .mobile-answer-card-btn {
+        min-width: unset !important;
+    }
+    
+    /* 手机答题卡优化 */
+    .sidebar {
+        width: 100% !important;
+        max-width: 100% !important;
+        right: -100% !important;
+        padding: 16px;
+    }
+
+    .sidebar.mobile-open {
+        right: 0 !important;
+    }
+    
+    .sidebar h3 {
+        font-size: 1rem;
+        margin-bottom: 12px;
+        padding-bottom: 10px;
+    }
+    
+    .q-nav-button {
+        width: 32px;
+        height: 32px;
+        font-size: 0.85rem;
+    }
+}
+
+/* ==================== 历史记录模态框样式 ==================== */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.5);
+    animation: fadeIn 0.3s ease;
+}
+
+.modal-content {
+    background-color: var(--bg-card);
+    margin: 5% auto;
+    padding: 0;
+    border-radius: var(--radius);
+    width: 90%;
+    max-width: 900px;
+    max-height: 85vh;
+    box-shadow: var(--shadow-md);
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-header {
+    padding: 20px 24px;
+    border-bottom: 2px solid var(--primary);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+    background: var(--bg-active);
+}
+
+.modal-header h2 {
+    margin: 0;
+    color: var(--primary-dark);
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 2rem;
+    color: var(--text-sub);
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.modal-close:hover {
+    background-color: var(--bg-body);
+    color: var(--text-main);
+}
+
+.modal-body {
+    padding: 24px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.history-controls {
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid var(--border);
+}
+
+.history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.history-item {
+    background: var(--bg-card);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    border: 1px solid var(--border-light);
+    transition: all 0.2s;
+}
+
+.history-item:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--primary-light);
+    background-color: var(--bg-active);
+}
+
+.history-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.history-item-title {
+    font-weight: 600;
+    color: var(--text-main);
+    font-size: 1.1rem;
+}
+
+.history-item-date {
+    color: var(--text-sub);
+    font-size: 0.9rem;
+}
+
+.history-item-score {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--primary);
+    background: var(--primary-pale);
+    padding: 4px 12px;
+    border-radius: var(--radius-sm);
+}
+
+.history-item-delete {
+    background: var(--error);
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+    font-weight: 600;
+}
+
+.history-item-delete:hover {
+    background: var(--error-light);
+    transform: scale(1.05);
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+}
+
+.option-stats {
+    margin-top: 20px;
+    padding: 16px;
+    background: var(--primary-pale);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--primary-light);
+}
+
+.option-stats h3 {
+    margin: 0 0 12px 0;
+    color: var(--primary-dark);
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+}
+
+.stat-item {
+    background: var(--bg-card);
+    padding: 14px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-light);
+    transition: all 0.2s;
+}
+
+.stat-item:hover {
+    box-shadow: var(--shadow-sm);
+    border-color: var(--primary-light);
+}
+
+.stat-item-label {
+    font-weight: 700;
+    color: var(--text-main);
+    margin-bottom: 6px;
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    color: var(--text-light);
+}
+
+.stat-item-value {
+    color: var(--primary);
+    font-size: 1.3rem;
+    font-weight: 800;
+}
+
+@media (max-width: 768px) {
+    .modal-content {
+        width: 95%;
+        margin: 2% auto;
+        max-height: 96vh;
+    }
+    .modal-header h2 {
+        font-size: 1.2rem;
+    }
+    .history-item-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+
+
+    </style>
+
+</head>
+<body>
+
+    <header class="header-hero">
+        <h1>操作系统选择</h1>
+        <p>单选题 65 道 · 满分 65 分</p>
+    </header>
+
+    <div class="page-wrapper">
+        <div class="main-content">
+            <div class="score-card">
+                <div class="score-info">
+                    <span>当前进度</span>
+                    <strong id="progress-text">0 / 65 题已作答</strong>
+                </div>
+                <div class="final-score" id="finalScore">
+                    得分：0
+                </div>
+            </div>
+
+            <form id="quizForm">
+                <div class="section-badge" id="sc_title">一、单项选择题 (共65题，每题1分)</div>
+                <div id="single-choice-container">
+                    </div>
+
+                <!-- 多项选择题部分已移除 -->
+            </form>
+        </div>
+
+        <div class="sidebar" id="sidebar">
+            <button id="sidebar-toggle" class="sidebar-toggle" aria-expanded="true" title="收起/展开答题卡">›</button>
+                <button class="mobile-close-btn" id="mobileCloseBtn" onclick="closeMobileSidebar()" aria-label="关闭答题卡" title="关闭答题卡" style="display:none;">✕</button>
+                
+            <!-- 计时器组件 - 放在答题卡最上方 -->
+            <div class="timer-widget" id="timerWidget">
+                <div class="timer-icon">⏱️</div>
+                <div class="timer-label">答题用时</div>
+                <div class="timer-display" id="timerDisplay">00:00</div>
+            </div>
+                
+                <h3>答题卡</h3>
+
+            <div class="nav-section">
+                <div class="nav-section-title">单项选择</div>
+                <div class="question-nav-grid" id="question-navigator-single"></div>
+            </div>
+
+            <!-- 多项选择导航已移除 -->
+        </div>
+    </div>
+
+    <div class="bottom-bar">
+        <button type="button" class="btn btn-secondary" onclick="resetQuiz()">重置试卷</button>
+        <div style="display:flex;align-items:center;gap:8px;">
+            <select id="shuffleMode" style="padding:10px;border-radius:12px;border:1px solid var(--border);background:white;">
+                <option value="shuffleQuestions">打乱题序（仅题序）</option>
+                <option value="shuffleOptions">打乱选项（序号固定）</option>
+                <option value="shuffleBoth">题序 + 选项（全部打乱）</option>
+            </select>
+            <button type="button" class="btn btn-secondary" onclick="applyShuffle()">应用打乱</button>
+            <button type="button" class="btn btn-secondary" onclick="restoreOriginal()">恢复原状</button>
+        </div>
+        <button type="button" class="btn btn-secondary mobile-answer-card-btn" id="mobileAnswerCardBtn" onclick="toggleMobileSidebar()" style="display:none;">
+            <span>📋</span>
+            <span>答题卡</span>
+        </button>
+        <button type="button" class="btn btn-primary" onclick="submitQuiz()">提交试卷 & 查看得分</button>
+        <button type="button" id="btnShowHistory" class="btn btn-secondary" onclick="showHistory()">查看历史记录</button>
+    </div>
+
+    <!-- 历史记录模态框 -->
+    <div id="historyModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>答题历史记录</h2>
+                <button class="modal-close" onclick="closeHistory()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="history-controls">
+                    <button type="button" class="btn btn-secondary" onclick="clearAllHistory()">一键删除所有记录</button>
+                    <div class="option-stats" id="optionStats"></div>
+                </div>
+                <div id="historyList" class="history-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <script >
+        // ================= 全局变量 =================
+let quizStartTime = null; // 记录答题开始时间
+
+        // ================= 数据源 =================
+let singleChoiceData = [
+    { id: 1, q: "操作系统是一种（）", options: ["A.通用软件", "B.应用软件", "C.系统软件", "D.工具软件"], ans: "C" },
+    { id: 2, q: "下列不属于冯诺依曼结构部件的是（）", options: ["A.控制器", "B.运算器", "C.存储器", "D.输出设备"], ans: "D" },
+    { id: 3, q: "与单道程序系统相比，多道程序系统的优点不包括（）", options: ["A.CPU利用率高", "B.系统开销小", "C.I/O设备利用率高", "D.系统吞吐量大"], ans: "B" },
+    { id: 4, q: "分时系统相比于多道系统，衡量性能的重要指标是（）", options: ["A.吞吐量", "B.资源利用率", "C.周转时间", "D.响应时间"], ans: "D" },
+    { id: 5, q: "操作系统管理和控制进程的是（）", options: ["A.进程控制块", "B.程序", "C.进程标识符", "D.I/O设备"], ans: "A" },
+    { id: 6, q: "当操作系统执行内核操作时，处理器处于（）", options: ["A.就绪态", "B.核心态", "C.内核态", "D.用户态"], ans: "C" },
+    { id: 7, q: "对于单CPU系统，如果系统中有n个进程，则处于就绪态的进程（）", options: ["A.n个", "B.n-1个", "C.1个", "D.0个"], ans: "D" },
+    { id: 8, q: "进程刚完成且获得内存资源后会进入（）", options: ["A.就绪队列", "B.等待队列", "C.运行队列", "D.挂起队列"], ans: "A" },
+    { id: 9, q: "以下会导致进程阻塞的是（）", options: ["A.等待磁盘输入", "B.等待同步信号", "C.等待内存分配", "D.等待分配CPU资源"], ans: "A" },
+    { id: 10, q: "在非抢占式调度系统中，不会引起进程调度的是（）", options: ["A.进程运行时间到", "B.进程等待I/O完成", "C.进程运行结束", "D.进程创建"], ans: "D" },
+    { id: 11, q: "在操作系统中，引发进程同步问题的原因是（）", options: ["A.进程的异步性", "B.进程的动态性", "C.进程的并发性", "D.进程的结构性"], ans: "A" },
+    { id: 12, q: "V操作后，如果有进程正在等待，则该进程转为（）", options: ["A.就绪态", "B.运行态", "C.挂起态"], ans: "A" },
+    { id: 13, q: "信箱通信是一种（）", options: ["A.低级通信方式", "B.间接通信方式", "C.管道通信方式", "D.IPC通信方式"], ans: "B" },
+    { id: 14, q: "临界资源发生死锁的必要条件中，一次只有一个进程可以访问的是（）", options: ["A.资源互斥", "B.资源不可抢占", "C.进程循环等待", "D.进程占有且等待"], ans: "A" },
+    { id: 15, q: "死锁的避免方法不包括（）", options: ["A.静态资源分配法", "B.银行家算法", "C.资源有序分配法", "D.死锁检测法"], ans: "D" },
+    { id: 16, q: "不会产生内存碎片的管理是（）", options: ["A.分页管理", "B.分段管理", "C.分区管理", "D.段页式"], ans: "A" },
+    { id: 17, q: "以下不属于页表项的是（）", options: ["A.页号", "B.物理块号", "C.段号", "D.访问位等属性"], ans: "C" },
+    { id: 18, q: "分页系统中的页面大小由（）确定", options: ["A.操作系统", "B.编译系统", "C.用户进程", "D.链接装入程序"], ans: "A" },
+    { id: 19, q: "段页式存储管理中，地址的构成是（）", options: ["A.每个进程一张段表，两张页表", "B.每个进程的每个段对应一张页表", "C.每个进程一张段表，每个段一张页表", "D.每个进程如果有n个段，n张页表"], ans: "C" },
+    { id: 20, q: "分段式存储管理中，CPU存取数据需要访问（）次内存", options: ["A.1", "B.2", "C.3", "D.0"], ans: "B" },
+    { id: 21, q: "虚拟设备指（）", options: ["A.允许用户使用比系统中具有的物理设备更多的设备", "B.允许用户使用不同的物理设备", "C.允许用户程序不必装入内存便可使用系统中的设备", "D.允许物理设备转化为多个逻辑上的设备"], ans: "D" },
+    { id: 22, q: "在设备管理中，设备独立性指的是（）", options: ["A.实现裸设备和逻辑设备的关系", "B.实现虚拟设备", "C.管理逻辑设备", "D.管理物理设备"], ans: "A" },
+    { id: 23, q: "DMA方式中的两个核心部件为（）", options: ["A.I/O和CPU", "B.主存和CPU", "C.I/O设备和主存"], ans: "C" },
+    { id: 24, q: "设备独立性指（）", options: ["A.每一台设备都有唯一的编号", "B.每一个用户都有唯一的编号", "C.计算机对设备的管理独立于操作系统", "D.设备独立于计算机系统"], ans: "A" },
+    { id: 25, q: "缓冲技术的缓冲区通常位于（）", options: ["A.硬盘", "B.软盘", "C.主存", "D.I/O设备"], ans: "C" },
+    { id: 26, q: "文件目录的作用是（）", options: ["A.节省磁盘空间", "B.提高读写速度", "C.按名存取", "D.提高辅存利用率"], ans: "C" },
+    { id: 27, q: "文件的逻辑结构可以分为（）", options: ["A.文件目录和文件体", "B.记录式和流式文件", "C.顺序和随机文件", "D.记录和块文件"], ans: "B" },
+    { id: 28, q: "当信号量初值为2，当前值为-1时，表示正在等待的资源的进程数是（）", options: ["A.2", "B.1", "C.3", "D.0"], ans: "B" },
+    { id: 29, q: "分区分配内存管理方式的主要保护措施是（）", options: ["A.代码保护", "B.数据保护", "C.权限保护", "D.地址保护"], ans: "D" },
+    { id: 30, q: "把逻辑地址转化为物理地址的过程称为（）", options: ["A.加载", "B.重定位", "C.地址保护", "D.虚拟化"], ans: "B" },
+    { id: 31, q: "进程在执行中发生了缺页中断，经操作系统处理后，应让其执行（）指令", options: ["A.被中断的前一条指令", "B.被中断的那一条指令", "C.被中断的后一条指令", "D.下一条指令"], ans: "B" },
+    { id: 32, q: "操作系统启动外设时，使用（）", options: ["A.逻辑设备号", "B.物理设备号", "C.虚拟设备号", "D.内部设备号"], ans: "A" },
+    { id: 33, q: "程序和设备系统调用I/O设备时，通常使用（）", options: ["A.逻辑设备号", "B.主设备号", "C.从设备号", "D.物理设备号"], ans: "A" },
+
+    // 后续题（34-55）
+    { id: 34, q: "批处理系统的主要缺点是（）", options: ["A.交互能力弱", "B.系统吞吐量小", "C.CPU利用率低", "D.内存利用率低"], ans: "A" },
+    { id: 35, q: "操作系统的基本特征包括（）", options: ["A.并发性", "B.共享性", "C.结构性", "D.虚拟性", "E.异步性"], ans: ["A","B","D","E"] },
+    { id: 36, q: "下列属于进程基本状态的是（）", options: ["A.运行态", "B.就绪态", "C.静态态", "D.阻塞态"], ans: ["A","B","D"] },
+    { id: 37, q: "可以由进程自身决定的状态转换是（）", options: ["A.运行态到就绪态", "B.就绪态到阻塞态", "C.运行态到阻塞态", "D.阻塞态到就绪态"], ans: "C" },
+    { id: 38, q: "考虑作业等待时间和执行时间的调度算法是（）", options: ["A.高响应比优先", "B.先来先服务", "C.短进程优先", "D.时间片轮转"], ans: "A" },
+    { id: 39, q: "操作系统中不可分割的指令序列称为（）", options: ["A.进程", "B.原语", "C.中断", "D.临界区"], ans: "B" },
+    { id: 40, q: "访问临界资源的代码段称为（）", options: ["A.保护区", "B.临界区", "C.内核区", "D.临界段"], ans: "B" },
+    { id: 41, q: "引起死锁的原因包括（）", options: ["A.进程时间耗尽", "B.进程推进顺序不当", "C.进程请求和保持资源", "D.进程等待信号量"], ans: ["B","C"] },
+    { id: 42, q: "破坏死锁等待条件的方法有（）", options: ["A.静态资源分配法", "B.银行家算法", "C.资源有序分配法", "D.死锁检测法"], ans: ["A","B","C"] },
+    { id: 43, q: "分区分配中，自由分区的管理方式包括（）", options: ["A.空闲表", "B.位示图", "C.空闲链表", "D.进程控制块", "E.进程等待信号量"], ans: "C" },
+    { id: 44, q: "在地址分配系统中，需要采用动态重定位方式的是（）", options: ["A.绝对装入", "B.静态装入", "C.动态装入", "D.以上均可"], ans: "C" },
+    { id: 45, q: "段页式存储管理中，地址数为32位，其中段号占8位，则页地址长度为（）", options: ["A.2⁸B", "B.2¹⁶B", "C.2²⁴B", "D.2³²B"], ans: "C" },
+    { id: 46, q: "下列关于虚拟存储器的描述中，正确的是（）", options: ["A.作业在运行前必须全部装入内存，运行中必须保持", "B.作业在运行前不必全部装入内存，运行中不必保持", "C.作业在运行前不必全部装入内存，运行中必须保持", "D.作业在运行前必须全部装入内存，运行中不必保持"], ans: "B" },
+    { id: 47, q: "在中断服务子程序的入口项中，（）会发生缺失", options: ["A.状态位", "B.优先级", "C.内存地址", "D.外存地址"], ans: "A" },
+    { id: 48, q: "磁盘设备是（）", options: ["A.字符设备", "B.块设备", "C.独占设备", "D.虚拟设备"], ans: "B" },
+    { id: 49, q: "在页面置换策略中，可能引起抖动的算法是（）", options: ["A.先进先出算法", "B.最优置换算法", "C.最近最久未使用算法", "D.时钟算法"], ans: "A" },
+    { id: 50, q: "在设备管理中，缓冲技术的作用是（）", options: ["A.实现逻辑设备与物理设备的对应", "B.实现设备分配", "C.提高设备利用率", "D.管理物理设备"], ans: "C" },
+    { id: 51, q: "以下属于I/O控制方式的是（）", options: ["A.DMA方式", "B.中断的编程方式", "C.程序查询方式", "D.通道方式"], ans: ["A","C","D"] },
+    { id: 52, q: "为了使并发进程能有效地交换数据，一般采用（）", options: ["A.单缓冲", "B.双缓冲", "C.循环缓冲", "D.缓冲池"], ans: "C" },
+    { id: 53, q: "文件系统的多级目录，从高到低分为（）", options: ["A.文件名，记录，字段", "B.记录，文件，数据项", "C.目录，文件，数据项", "D.记录，数据项，文件"], ans: "C" },
+    { id: 54, q: "从根目录开始的文件查找路径称为（）", options: ["A.绝对路径", "B.相对路径", "C.子路径", "D.父路径"], ans: "A" },
+    { id: 55, q: "设备独立性是指（）", options: ["A.设备独立于计算机系统", "B.用户程序使用的设备与实际物理设备无关", "C.设备驱动程序独立于操作系统", "D.设备的编号独立于用户进程"], ans: "B" }
+];
+
+// 多选题数据已移除
+
+// 保存原始数据以便恢复（页面加载后设置）
+const ORIGINAL_SINGLE = JSON.parse(JSON.stringify(singleChoiceData));
+
+// 深拷贝辅助
+function deepClone(obj) { return JSON.parse(JSON.stringify(obj)); }
+
+// Fisher-Yates 打乱数组（返回新数组，不修改原数组）
+function shuffleArray(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+}
+
+// 重新渲染试卷：清空容器并根据当前 singleChoiceData 渲染
+function rerenderQuiz() {
+    const sContainer = document.getElementById('single-choice-container');
+    const navContainerSingle = document.getElementById('question-navigator-single');
+    if (!sContainer || !navContainerSingle) return;
+
+    sContainer.innerHTML = '';
+    navContainerSingle.innerHTML = '';
+
+    let globalIndex = 1;
+    singleChoiceData.forEach(item => {
+        const inputType = Array.isArray(item.ans) ? 'checkbox' : 'radio';
+        const card = createCard(item, inputType, 's_', globalIndex);
+        sContainer.appendChild(card);
+        navContainerSingle.appendChild(createNavButton(globalIndex, card.id, 'single'));
+        globalIndex++;
+    });
+
+    // 重新绑定必要的行为
+    initListeners();
+    updateProgressText();
+    setupMobileNavigation();
+}
+
+// 应用打乱：mode = 'shuffleQuestions' | 'shuffleOptions' | 'shuffleBoth'
+function applyShuffleMode(mode) {
+    // 基于 ORIGINAL_SINGLE 做操作，避免重复叠加
+    singleChoiceData = deepClone(ORIGINAL_SINGLE);
+
+    if (mode === 'shuffleQuestions' || mode === 'shuffleBoth') {
+        singleChoiceData = shuffleArray(singleChoiceData);
+    }
+
+    if (mode === 'shuffleOptions' || mode === 'shuffleBoth') {
+        singleChoiceData = singleChoiceData.map(q => ({ ...q, options: shuffleArray(q.options) }));
+    }
+
+    rerenderQuiz();
+}
+
+function applyShuffle() {
+    const sel = document.getElementById('shuffleMode');
+    if (!sel) return;
+    applyShuffleMode(sel.value);
+}
+
+function restoreOriginal() {
+    singleChoiceData = deepClone(ORIGINAL_SINGLE);
+    rerenderQuiz();
+}
+
+// ================= JS 核心逻辑 =================
+
+// 创建题目卡片的通用函数
+function createCard(item, type, prefix, globalIndex) {
+    const card = document.createElement('div');
+    card.className = 'question-card';
+    card.id = `q_${prefix}${item.id}`;
+    card.dataset.qIndex = globalIndex;
+    
+    const tagLabel = type === 'radio' ? '单选' : '多选';
+    
+    // 选项生成
+    let optionsHtml = '<div class="options-group">';
+    item.options.forEach(opt => {
+        const optKey = opt.charAt(0);
+        optionsHtml += `
+            <label class="option-label">
+                <input type="${type}" name="${prefix}${item.id}" value="${optKey}" data-qindex="${globalIndex}">
+                <span class="checkmark"></span>
+                <span class="option-text">${opt}</span>
+            </label>
+        `;
+    });
+    optionsHtml += '</div>';
+
+    card.innerHTML = `
+        <div class="question-text">
+            <span class="q-tag">${tagLabel}</span>${globalIndex}. ${item.q}
+        </div>
+        ${optionsHtml}
+        <div class="result-box" id="f_${prefix}${item.id}"></div>
+    `;
+    return card;
+}
+
+// 创建答题卡导航按钮
+function createNavButton(index, targetId, type) {
+    const button = document.createElement('a');
+    button.href = `#${targetId}`;
+    button.className = 'q-nav-button ' + (type === 'single' ? 'nav-single' : 'nav-multi');
+    button.id = `nav_q_${index}`;
+    button.innerText = index;
+    // 把导航行为封装为可复用函数，用于 click 和 touchend
+    const doNav = (e) => {
+        if (e && e.preventDefault) {
+            e.preventDefault();
+            if (e.stopPropagation) e.stopPropagation();
+        }
+        console.log('[nav] clicked', index, targetId, 'isSmall=', (typeof isSmallScreen === 'function' ? isSmallScreen() : 'nofn'));
+        const el = document.getElementById(targetId);
+        if (!el) {
+            console.warn('[nav] target not found', targetId);
+            return;
+        }
+
+        // Helper: smooth-scroll to element using window.scrollTo with calculated top (more reliable on mobile)
+        const scrollToElement = (element) => {
+            try {
+                const rect = element.getBoundingClientRect();
+                const targetY = rect.top + (window.pageYOffset || document.documentElement.scrollTop || 0);
+                // subtract a small offset to account for any fixed header (if exists)
+                const header = document.querySelector('.header-hero');
+                const headerHeight = header ? header.getBoundingClientRect().height : 0;
+                const finalY = Math.max(0, targetY - headerHeight - 8);
+                window.scrollTo({ top: finalY, behavior: 'smooth' });
+            } catch (err) {
+                try { element.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { console.warn('scroll fallback failed', e); }
+            }
+        };
+
+        if (typeof isSmallScreen === 'function' && isSmallScreen()) {
+            // 标记由导航触发的侧栏关闭，防止 setupMobileNavigation 的延迟关闭再次触发并恢复滚动位置
+            try { window._navCloseInProgress = Date.now(); } catch (e) { /* ignore */ }
+            try { closeMobileSidebar(); console.log('[nav] closeMobileSidebar called'); } catch (err) { console.error(err); }
+
+            const start = Date.now();
+            const maxWait = 800;
+
+            const tryScroll = () => {
+                const body = document.body;
+                if (!body.style.position || body.style.position === '') {
+                    console.log('[nav] body unlocked, scrolling to', targetId);
+                    scrollToElement(el);
+                } else if (Date.now() - start < maxWait) {
+                    requestAnimationFrame(tryScroll);
+                } else {
+                    console.log('[nav] timeout, forcing scroll to', targetId);
+                    scrollToElement(el);
+                }
+            };
+
+            setTimeout(tryScroll, 40);
+
+            // 在一段时间后清除标记
+            setTimeout(() => { try { window._navCloseInProgress = 0; } catch (e) {} }, 1200);
+        } else {
+            console.log('[nav] desktop scroll to', targetId);
+            scrollToElement(el);
+        }
+    };
+
+    // 绑定事件：click 用于桌面和部分移动设备，touchend 帮助更早捕获触摸交互
+    button.addEventListener('click', doNav, { passive: false });
+    button.addEventListener('touchend', function(e){ doNav(e); }, { passive: false });
+    return button;
+}
+
+// 渲染所有组件
+function renderQuiz() {
+    const sContainer = document.getElementById('single-choice-container');
+    const navContainerSingle = document.getElementById('question-navigator-single');
+    
+    let globalIndex = 1;
+
+    // 渲染题目（单选或多选由数据中的 ans 决定）
+    singleChoiceData.forEach(item => {
+        const inputType = Array.isArray(item.ans) ? 'checkbox' : 'radio';
+        const card = createCard(item, inputType, 's_', globalIndex);
+        sContainer.appendChild(card);
+        navContainerSingle.appendChild(createNavButton(globalIndex, card.id, 'single'));
+        globalIndex++;
+    });
+    
+    // 初始化事件监听器
+    initListeners();
+    // 初始进度
+    updateProgressText();
+    // 启动计时器
+    startTimer();
+}
+
+// 启动计时器
+let timerInterval = null;
+function startTimer() {
+    if (timerInterval) clearInterval(timerInterval);
+    
+    timerInterval = setInterval(() => {
+        if (quizStartTime) {
+            const elapsed = Math.floor((Date.now() - quizStartTime) / 1000);
+            const minutes = Math.floor(elapsed / 60);
+            const seconds = elapsed % 60;
+            const timerDisplay = document.getElementById('timerDisplay');
+            if (timerDisplay) {
+                timerDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            }
+        }
+    }, 1000); // 每秒更新一次
+}
+
+// 实时更新答题状态和进度
+function updateQuestionStatus(qIndex, name) {
+    const navButton = document.getElementById(`nav_q_${qIndex}`);
+    const formInputs = document.querySelectorAll(`input[name="${name}"]`);
+    let isAnswered = false;
+    
+    // 检查该题是否有任何选项被选中
+    for (const input of formInputs) {
+        if (input.checked) {
+            isAnswered = true;
+            break;
+        }
+    }
+
+    if (isAnswered) {
+        navButton.classList.add('answered');
+    } else {
+        navButton.classList.remove('answered');
+    }
+    
+    updateProgressText();
+}
+
+// 更新进度文本
+function updateProgressText() {
+     const answeredCount = document.querySelectorAll('.q-nav-button.answered').length;
+    const total = typeof singleChoiceData !== 'undefined' ? singleChoiceData.length : 0;
+    document.getElementById('progress-text').innerText = `${answeredCount} / ${total} 题已作答`;
+}
+
+
+function initListeners() {
+    const quizForm = document.getElementById('quizForm');
+    if (!quizForm) return;
+    // 防止重复绑定
+    if (quizForm._initBound) return;
+    // 使用事件委托，监听表单内所有 input 的变化
+    quizForm.addEventListener('change', (event) => {
+        const inputName = event.target.name;
+        const qIndex = event.target.dataset.qindex;
+        if (inputName && qIndex) {
+            updateQuestionStatus(qIndex, inputName);
+        }
+    });
+    quizForm._initBound = true;
+}
+
+// 将秒数格式化为 MM:SS 或 H:MM:SS
+function formatTime(seconds) {
+    if (seconds < 0) seconds = 0;
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    
+    if (hours > 0) {
+        return `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    } else {
+        return `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }
+}
+
+// 提交评分逻辑 (全局函数，供 HTML 中的 onclick 调用)
+function submitQuiz() {
+    let score = 0;
+    let totalCorrect = 0;
+    
+    // 整合所有题目数据，方便统一处理（根据 ans 类型判断是否为多选）
+    const allQuestions = singleChoiceData.map((q, i) => ({ ...q, prefix: 's_', isMulti: Array.isArray(q.ans), index: i + 1 }));
+    
+    const rootStyle = getComputedStyle(document.documentElement);
+    const successColor = rootStyle.getPropertyValue('--success').trim();
+    const errorColor = rootStyle.getPropertyValue('--error').trim();
+    
+    // 用于保存本次答题记录的数组
+    const answerRecord = [];
+    
+    allQuestions.forEach(item => {
+        const cardId = `q_${item.prefix}${item.id}`;
+        const card = document.getElementById(cardId);
+        const feedback = document.getElementById(`f_${item.prefix}${item.id}`);
+        const navButton = document.getElementById(`nav_q_${item.index}`);
+        
+        // 清除旧状态
+        card.classList.remove('correct', 'incorrect');
+        navButton.classList.remove('answered', 'correct', 'incorrect');
+        feedback.style.display = 'block';
+
+        let isCorrect = false;
+        let userAnswer = null;
+
+        if (!item.isMulti) {
+            // 单选逻辑
+            const selected = document.querySelector(`input[name="${item.prefix}${item.id}"]:checked`);
+            userAnswer = selected ? selected.value : null;
+
+            if (userAnswer === item.ans) {
+                score += 1;
+                isCorrect = true;
+            } 
+            feedback.innerHTML = `<strong>${isCorrect ? '✔ 回答正确' : '✘ 回答错误'}</strong><br>正确答案: <b>${item.ans}</b>`;
+            
+            // 记录单选答案
+            answerRecord.push({
+                questionIndex: item.index,
+                questionId: item.id,
+                type: 'single',
+                correctAnswer: item.ans,
+                userAnswer: userAnswer,
+                isCorrect: isCorrect,
+                options: item.options
+            });
+
+        } else {
+            // 多选逻辑（完全匹配才视为正确，得 1 分）
+            const checkboxes = document.querySelectorAll(`input[name="${item.prefix}${item.id}"]:checked`);
+            const userValsArr = Array.from(checkboxes).map(cb => cb.value).sort();
+            const userVals = userValsArr.join('');
+            const correctValsArr = Array.isArray(item.ans) ? item.ans.slice().sort() : [item.ans];
+            const correctVals = correctValsArr.join('');
+            userAnswer = userValsArr;
+
+            if (userVals === correctVals) {
+                score += 1;
+                isCorrect = true;
+            }
+            feedback.innerHTML = `<strong>${isCorrect ? '✔ 回答正确' : '✘ 回答错误'}</strong><br>正确答案: <b>${correctValsArr.join('')}</b>`;
+            
+            // 记录多选答案
+            answerRecord.push({
+                questionIndex: item.index,
+                questionId: item.id,
+                type: 'multi',
+                correctAnswer: correctValsArr,
+                userAnswer: userAnswer,
+                isCorrect: isCorrect,
+                options: item.options
+            });
+        }
+        
+        // 更新卡片和导航按钮状态
+        if (isCorrect) {
+            card.classList.add('correct');
+            navButton.classList.add('correct');
+            totalCorrect++;
+        } else {
+            card.classList.add('incorrect');
+            navButton.classList.add('incorrect');
+        }
+    });
+
+    // 禁用输入，防止重复提交和修改
+    document.querySelectorAll('#quizForm input').forEach(input => input.disabled = true);
+
+    // 停止计时器
+    if (timerInterval) clearInterval(timerInterval);
+
+    // 显示最终得分
+    const scoreDisplay = document.getElementById('finalScore');
+    const progressText = document.getElementById('progress-text');
+    
+    scoreDisplay.style.display = 'block';
+    scoreDisplay.innerHTML = `${score} <span style="font-size:0.5em;color:#666">/ ${singleChoiceData.length}</span>`;
+    
+    progressText.innerText = `最终得分：${score} 分`;
+    progressText.style.color = score >= 60 ? successColor : errorColor;
+
+    // 计算答题用时
+    const endTime = Date.now();
+    const timeTaken = quizStartTime ? Math.round((endTime - quizStartTime) / 1000) : 0; // 转换为秒
+
+    // 保存本次答题记录（包含当前打乱模式）
+    const modeEl = document.getElementById('shuffleMode');
+    const currentMode = modeEl ? modeEl.value : 'original';
+    saveQuizResult(score, answerRecord, currentMode, timeTaken);
+
+    // 滚动到顶部
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    alert(`交卷成功！您的最终得分是：${score}分\n答题用时：${formatTime(timeTaken)}`);
+}
+
+// 重置页面 (全局函数，供 HTML 中的 onclick 调用)
+function resetQuiz() {
+    if(confirm("确定要清空所有答案重置试卷吗？")) {
+        quizStartTime = Date.now(); // 重置开始时间
+        if (timerInterval) clearInterval(timerInterval); // 清除旧定时器
+        startTimer(); // 重新启动计时器
+        location.reload();
+    }
+}
+
+// 初始化侧栏折叠/展开功能
+function initSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const toggle = document.getElementById('sidebar-toggle');
+    if (!sidebar || !toggle) return;
+
+    // 恢复上次状态
+    const collapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+    if (collapsed) {
+        sidebar.classList.add('collapsed');
+        document.body.classList.add('sidebar-collapsed');
+        toggle.setAttribute('aria-expanded', 'false');
+    } else {
+        sidebar.classList.remove('collapsed');
+        document.body.classList.remove('sidebar-collapsed');
+        toggle.setAttribute('aria-expanded', 'true');
+    }
+
+    // 在移动端点击使用抽屉逻辑，在大屏保留折叠逻辑
+    toggle.addEventListener('click', (e) => {
+        if (window.innerWidth <= 1000) {
+            // 移动端：切换抽屉
+            e.stopPropagation();
+            toggleMobileSidebar();
+            return;
+        }
+
+        // 桌面端：折叠/展开
+        const isCollapsed = sidebar.classList.toggle('collapsed');
+        document.body.classList.toggle('sidebar-collapsed', isCollapsed);
+        toggle.setAttribute('aria-expanded', String(!isCollapsed));
+        localStorage.setItem('sidebarCollapsed', String(isCollapsed));
+    });
+}
+
+// ================= 历史记录相关函数 =================
+
+// 保存答题结果到localStorage（最多保存10条）
+function saveQuizResult(score, answerRecord, mode, timeTaken = 0) {
+    const history = getQuizHistory();
+    
+    // 创建新记录
+    const newRecord = {
+        id: Date.now(), // 使用时间戳作为唯一ID
+        score: score,
+        mode: mode || 'original',
+        date: new Date().toLocaleString('zh-CN'),
+        timeTaken: timeTaken, // 添加用时（秒数）
+        answers: answerRecord
+    };
+    
+    // 将新记录添加到最前面
+    history.unshift(newRecord);
+    
+    // 只保留最近10条记录
+    if (history.length > 10) {
+        history.splice(10);
+    }
+    
+    // 保存到localStorage
+    localStorage.setItem('quizHistory', JSON.stringify(history));
+}
+
+// 获取答题历史记录（容错：解析失败会自动清空历史）
+function getQuizHistory() {
+    const key = 'quizHistory';
+    const historyJson = localStorage.getItem(key);
+    if (!historyJson) return [];
+    try {
+        const parsed = JSON.parse(historyJson);
+        // 验证数据完整性：每条记录都必须有 answers 数组和每个 answer 都有 options
+        if (!Array.isArray(parsed)) return [];
+        
+        const validHistory = parsed.filter(record => {
+            if (!record || typeof record !== 'object') return false;
+            if (!Array.isArray(record.answers)) return false;
+            // 检查每个 answer 都有必要字段
+            return record.answers.every(answer => 
+                answer && typeof answer === 'object' && Array.isArray(answer.options)
+            );
+        });
+        
+        // 如果数据被过滤（删除了无效记录），更新存储
+        if (validHistory.length !== parsed.length) {
+            console.warn(`发现 ${parsed.length - validHistory.length} 条无效记录，已清除`);
+            localStorage.setItem(key, JSON.stringify(validHistory));
+        }
+        
+        return validHistory;
+    } catch (err) {
+        console.warn('quizHistory 解析失败，已清空历史记录', err);
+        localStorage.removeItem(key);
+        return [];
+    }
+}
+
+// 显示历史记录模态框
+function showHistory() {
+    console.log('showHistory 函数被调用');
+    try {
+        const modal = document.getElementById('historyModal');
+        const historyList = document.getElementById('historyList');
+        
+        if (!modal) {
+            console.error('找不到 historyModal 元素');
+            alert('无法打开历史记录：找不到模态框元素');
+            return;
+        }
+        
+        if (!historyList) {
+            console.error('找不到 historyList 元素');
+            alert('无法打开历史记录：找不到列表元素');
+            return;
+        }
+        
+        const history = getQuizHistory();
+        
+        // 渲染历史记录列表
+        if (history.length === 0) {
+            historyList.innerHTML = '<div style="text-align: center; color: var(--text-sub); padding: 40px;">暂无答题记录</div>';
+        } else {
+            historyList.innerHTML = history.map((record, index) => {
+                // 统计这次答题的正确题数
+                const correctCount = record.answers ? record.answers.filter(a => a.isCorrect).length : 0;
+                const totalCount = record.answers ? record.answers.length : 0;
+                
+                // 格式化用时显示
+                const timeDisplay = record.timeTaken ? ` · 用时 ${formatTime(record.timeTaken)}` : '';
+                
+                // 生成详细答案列表
+                let answersHtml = '';
+                if (Array.isArray(record.answers)) {
+                    answersHtml = record.answers.map(answer => {
+                        // 格式化用户答案
+                        let userAnswerDisplay = '未作答';
+                        if (answer.userAnswer) {
+                            if (Array.isArray(answer.userAnswer)) {
+                                userAnswerDisplay = answer.userAnswer.join('');
+                            } else {
+                                userAnswerDisplay = answer.userAnswer;
+                            }
+                        }
+                        
+                        // 格式化正确答案
+                        let correctAnswerDisplay = '';
+                        if (Array.isArray(answer.correctAnswer)) {
+                            correctAnswerDisplay = answer.correctAnswer.join('');
+                        } else {
+                            correctAnswerDisplay = answer.correctAnswer;
+                        }
+                        
+                        const resultColor = answer.isCorrect ? 'var(--success)' : 'var(--error)';
+                        const resultText = answer.isCorrect ? '✓ 正确' : '✗ 错误';
+                        
+                        return `
+                            <div style="background: var(--bg-body); padding: 12px; border-radius: 8px; margin-bottom: 8px; border-left: 4px solid ${resultColor};">
+                                <div style="font-weight: 600; margin-bottom: 6px; color: var(--text-main);">第 ${answer.questionIndex} 题</div>
+                                <div style="font-size: 0.9rem; color: var(--text-sub); margin-bottom: 4px;">
+                                    <span style="display: inline-block; padding: 2px 8px; background: var(--primary-light); border-radius: 4px; margin-right: 8px;">
+                                        你的答案: <strong>${userAnswerDisplay}</strong>
+                                    </span>
+                                </div>
+                                <div style="font-size: 0.9rem; color: var(--text-sub); margin-bottom: 4px;">
+                                    <span style="display: inline-block; padding: 2px 8px; background: #f0f0f0; border-radius: 4px; margin-right: 8px;">
+                                        正确答案: <strong>${correctAnswerDisplay}</strong>
+                                    </span>
+                                </div>
+                                <div style="font-size: 0.9rem; color: ${resultColor}; font-weight: 600;">
+                                    ${resultText}
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+                
+                // 显示保存时的打乱模式（若有）
+                const modeMap = {
+                    shuffleQuestions: '打乱题序（仅题序）',
+                    shuffleOptions: '打乱选项（序号固定）',
+                    shuffleBoth: '题序 + 选项（全部打乱）',
+                    original: '未打乱'
+                };
+                const recordModeDisplay = modeMap[record.mode] || (record.mode ? record.mode : '未打乱');
+
+                return `
+                    <div class="history-item">
+                        <div class="history-item-header">
+                            <div>
+                                <div class="history-item-title">第 ${history.length - index} 次答题</div>
+                                <div class="history-item-date">${record.date}${timeDisplay}</div>
+                                <div style="font-size:0.9rem;color:var(--text-sub);margin-top:6px;">打乱模式：<strong style="color:var(--primary);">${recordModeDisplay}</strong></div>
+                                <div style="font-size: 0.85rem; color: var(--text-sub); margin-top: 4px;">
+                                    答对 ${correctCount}/${totalCount} 题
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 16px;">
+                                <div class="history-item-score">${record.score} 分</div>
+                                <button class="history-item-delete" onclick="deleteHistoryItem(${record.id})">删除</button>
+                            </div>
+                        </div>
+                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border);">
+                            <details style="cursor: pointer;">
+                                <summary style="color: var(--primary); font-weight: 600; margin-bottom: 8px;">
+                                    展开查看详细答题情况
+                                </summary>
+                                <div style="margin-top: 12px;">
+                                    ${answersHtml}
+                                </div>
+                            </details>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // 显示选项统计（使用try-catch确保即使出错也能显示模态框）
+        try {
+            updateOptionStats(history);
+        } catch (err) {
+            console.error('更新选项统计时出错:', err);
+            const optionStatsEl = document.getElementById('optionStats');
+            if (optionStatsEl) {
+                optionStatsEl.innerHTML = '<div style="color: var(--error); padding: 10px;">统计功能暂时无法使用</div>';
+            }
+        }
+        
+        // 显示模态框
+        modal.style.display = 'block';
+    } catch (err) {
+        console.error('showHistory 函数执行出错:', err);
+        alert('打开历史记录时出错: ' + err.message);
+    }
+}
+
+// 关闭历史记录模态框
+function closeHistory() {
+    const modal = document.getElementById('historyModal');
+    if (modal) modal.style.display = 'none';
+}
+
+// 删除单条历史记录
+function deleteHistoryItem(id) {
+    if (confirm('确定要删除这条记录吗？')) {
+        const history = getQuizHistory();
+        const filteredHistory = history.filter(record => record.id !== id);
+        localStorage.setItem('quizHistory', JSON.stringify(filteredHistory));
+        showHistory(); // 刷新显示
+    }
+}
+
+// 清空所有历史记录
+function clearAllHistory() {
+    if (confirm('确定要删除所有答题记录吗？此操作不可恢复！')) {
+        localStorage.removeItem('quizHistory');
+        showHistory(); // 刷新显示
+    }
+}
+
+// 更新选项正确率统计
+function updateOptionStats(history) {
+    const optionStatsEl = document.getElementById('optionStats');
+    if (!optionStatsEl) {
+        console.warn('找不到 optionStats 元素');
+        return;
+    }
+    
+    if (history.length === 0) {
+        optionStatsEl.innerHTML = '';
+        return;
+    }
+    
+    // 统计每个选项的选择次数和正确次数
+    // 格式：{ "questionIndex_optionKey": { questionIndex, option, selectedCount, correctCount } }
+    const optionStats = {};
+    
+    // 遍历所有历史记录
+    history.forEach(record => {
+        // 检查 answers 字段是否存在且是数组
+        if (!Array.isArray(record.answers)) {
+            console.warn('记录中缺少 answers 字段或不是数组:', record);
+            return;
+        }
+        
+        record.answers.forEach(answer => {
+            // 检查 options 字段是否存在且是数组（防止旧记录没有此字段）
+            if (!Array.isArray(answer.options)) {
+                console.warn('答案记录中缺少 options 字段:', answer);
+                return;
+            }
+            
+            // 遍历该题的所有选项
+            answer.options.forEach((opt) => {
+                const optionKey = opt.charAt(0); // A, B, C, D等
+                const questionKey = `${answer.questionIndex}_${optionKey}`;
+                
+                // 初始化统计对象
+                if (!optionStats[questionKey]) {
+                    optionStats[questionKey] = {
+                        questionIndex: answer.questionIndex,
+                        option: optionKey,
+                        selectedCount: 0,
+                        correctCount: 0
+                    };
+                }
+                
+                // 统计选择次数和正确次数
+                if (answer.type === 'single') {
+                    // 单选题：如果用户选择了该选项
+                    if (answer.userAnswer === optionKey) {
+                        optionStats[questionKey].selectedCount++;
+                        // 如果用户答对了（即选择的选项是正确答案），则正确次数+1
+                        if (answer.isCorrect) {
+                            optionStats[questionKey].correctCount++;
+                        }
+                    }
+                } else {
+                    // 多选题：如果用户选择了该选项
+                    if (answer.userAnswer && Array.isArray(answer.userAnswer) && answer.userAnswer.includes(optionKey)) {
+                        optionStats[questionKey].selectedCount++;
+                        // 如果用户答对了整个题目，且该选项是正确答案的一部分，则正确次数+1
+                        if (answer.isCorrect && Array.isArray(answer.correctAnswer) && answer.correctAnswer.includes(optionKey)) {
+                            optionStats[questionKey].correctCount++;
+                        }
+                    }
+                }
+            });
+        });
+    });
+    
+    // 计算正确率并生成统计HTML
+    let statsHtml = '<h3>选项正确率分析（仅显示有选择记录的选项）</h3><div class="stats-grid">';
+    
+    // 过滤出有选择记录的选项，并按题目和选项排序
+    const statsArray = Object.values(optionStats)
+        .filter(stat => stat.selectedCount > 0)
+        .sort((a, b) => {
+            if (a.questionIndex !== b.questionIndex) {
+                return a.questionIndex - b.questionIndex;
+            }
+            return a.option.localeCompare(b.option);
+        });
+    
+    if (statsArray.length === 0) {
+        statsHtml += '<div style="text-align: center; color: var(--text-sub); padding: 20px;">暂无统计数据</div>';
+    } else {
+        statsArray.forEach(stat => {
+            const accuracy = stat.selectedCount > 0 
+                ? ((stat.correctCount / stat.selectedCount) * 100).toFixed(1) 
+                : 0;
+            const accuracyColor = parseFloat(accuracy) >= 50 ? 'var(--success)' : 'var(--error)';
+            statsHtml += `
+                <div class="stat-item">
+                    <div class="stat-item-label">第${stat.questionIndex}题 - 选项${stat.option}</div>
+                    <div class="stat-item-value" style="color: ${accuracyColor}">正确率: ${accuracy}%</div>
+                    <div style="font-size: 0.85rem; color: var(--text-sub); margin-top: 4px;">
+                        选择${stat.selectedCount}次，正确${stat.correctCount}次
+                    </div>
+                </div>
+            `;
+        });
+    }
+    
+    statsHtml += '</div>';
+    if (optionStatsEl) {
+        optionStatsEl.innerHTML = statsHtml;
+    }
+}
+
+// 点击模态框外部关闭
+document.addEventListener('click', function(event) {
+    const modal = document.getElementById('historyModal');
+    if (modal && event.target === modal) {
+        closeHistory();
+    }
+});
+
+// 确保函数在全局作用域可用
+window.showHistory = showHistory;
+window.closeHistory = closeHistory;
+window.deleteHistoryItem = deleteHistoryItem;
+window.clearAllHistory = clearAllHistory;
+
+// ================= 手机端答题卡控制 =================
+
+// 检查是否为小屏幕
+function isSmallScreen() {
+    return window.innerWidth <= 1000;
+}
+
+// 切换手机端答题卡显示
+function toggleMobileSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const mobileBtn = document.getElementById('mobileAnswerCardBtn');
+    
+    if (!sidebar) return;
+    
+    const isOpen = sidebar.classList.contains('mobile-open');
+    
+    if (isOpen) {
+        closeMobileSidebar();
+    } else {
+        openMobileSidebar();
+    }
+}
+
+// 打开手机端答题卡
+function openMobileSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const body = document.body;
+    
+    if (!sidebar) return;
+    
+    sidebar.classList.add('mobile-open');
+    body.classList.add('sidebar-open');
+
+    // 保存滚动位置并禁止页面滚动（以避免页面被挤动）
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop || 0;
+    body.dataset.scrollTop = scrollTop;
+    body.style.position = 'fixed';
+    body.style.top = `-${scrollTop}px`;
+    body.style.left = '0';
+    body.style.right = '0';
+    body.style.width = '100%';
+
+    // 添加全局关闭事件（点击侧栏外或按 ESC 关闭）
+    setTimeout(() => {
+        document.addEventListener('click', handleMobileSidebarClose);
+        document.addEventListener('keydown', handleMobileSidebarKeydown);
+    }, 50);
+}
+
+// 关闭手机端答题卡
+function closeMobileSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const body = document.body;
+    
+    if (!sidebar) return;
+    
+    sidebar.classList.remove('mobile-open');
+    body.classList.remove('sidebar-open');
+
+    // 移除全局事件监听
+    document.removeEventListener('click', handleMobileSidebarClose);
+    document.removeEventListener('keydown', handleMobileSidebarKeydown);
+
+    // 恢复页面滚动和滚动位置
+    const prevScroll = parseInt(body.dataset.scrollTop || 0);
+    body.style.position = '';
+    body.style.top = '';
+    body.style.left = '';
+    body.style.right = '';
+    body.style.width = '';
+    if (!Number.isNaN(prevScroll) && prevScroll > 0) {
+        window.scrollTo(0, prevScroll);
+    }
+}
+
+// 处理蒙层点击关闭
+function handleMobileSidebarClose(event) {
+    const sidebar = document.getElementById('sidebar');
+    const mobileBtn = document.getElementById('mobileAnswerCardBtn');
+    const mobileClose = document.getElementById('mobileCloseBtn');
+
+    // 如果点击在sidebar或mobileBtn上，不关闭
+    if (sidebar && sidebar.contains(event.target)) return;
+    if (mobileBtn && mobileBtn.contains(event.target)) return;
+    if (mobileClose && mobileClose.contains(event.target)) return;
+
+    // 检查点击是否在蒙层上
+    const body = document.body;
+    if (body.classList.contains('sidebar-open')) {
+        closeMobileSidebar();
+    }
+}
+
+function handleMobileSidebarKeydown(event) {
+    if (event.key === 'Escape' || event.key === 'Esc') {
+        closeMobileSidebar();
+    }
+}
+
+// 答题卡导航按钮点击时自动关闭手机版答题卡
+function setupMobileNavigation() {
+    // 始终绑定，点击导航后若为移动端则延迟关闭抽屉以允许滚动动画完成
+    const navButtons = document.querySelectorAll('.q-nav-button');
+    function mobileNavHandler() {
+        console.log('[mobileNavHandler] fired');
+        // 如果近期有导航触发的侧栏关闭标记，则忽略这个延迟关闭（避免覆盖滚动）
+        if (window._navCloseInProgress && (Date.now() - window._navCloseInProgress) < 1200) {
+            console.log('[mobileNavHandler] suppressed by navCloseInProgress');
+            return;
+        }
+        if (isSmallScreen()) {
+            console.log('[mobileNavHandler] mobile detected, will close sidebar');
+            setTimeout(() => { closeMobileSidebar(); console.log('[mobileNavHandler] sidebar closed'); }, 300);
+        }
+    }
+    navButtons.forEach(btn => {
+        btn.removeEventListener('click', mobileNavHandler);
+        btn.addEventListener('click', mobileNavHandler);
+        // 兼容触屏设备：当 touchend 发生时也触发移动端关闭行为
+        btn.removeEventListener('touchend', mobileNavHandler);
+        btn.addEventListener('touchend', mobileNavHandler, { passive: true });
+    });
+}
+
+// 初始化手机端答题卡显示/隐藏按钮
+function initMobileAnswerCardBtn() {
+    const mobileBtn = document.getElementById('mobileAnswerCardBtn');
+    if (!mobileBtn) return;
+    
+    // 检查屏幕大小，决定是否显示按钮
+    function updateBtnVisibility() {
+        const mobileClose = document.getElementById('mobileCloseBtn');
+        if (isSmallScreen()) {
+            mobileBtn.style.display = 'flex';
+            if (mobileClose) mobileClose.style.display = 'flex';
+        } else {
+            mobileBtn.style.display = 'none';
+            if (mobileClose) mobileClose.style.display = 'none';
+            closeMobileSidebar(); // 大屏幕时关闭mobile侧栏
+        }
+    }
+    
+    // 初始检查
+    updateBtnVisibility();
+    
+    // 监听窗口resize
+    window.addEventListener('resize', updateBtnVisibility);
+}
+
+// 清理损坏的历史数据（可在控制台调用）
+window.cleanCorruptedHistory = function() {
+    const key = 'quizHistory';
+    localStorage.removeItem(key);
+    console.log('已清空所有历史记录');
+    alert('已清空所有历史记录，请重新加载页面。');
+    location.reload();
+};
+
+// 导出手机答题卡函数到全局
+window.toggleMobileSidebar = toggleMobileSidebar;
+window.closeMobileSidebar = closeMobileSidebar;
+window.openMobileSidebar = openMobileSidebar;
+
+// 确保历史记录函数在全局并绑定按钮点击（兼容不同环境）
+try {
+    window.showHistory = showHistory;
+    const hb = document.getElementById('btnShowHistory');
+    if (hb) {
+        hb.removeEventListener('click', showHistory);
+        hb.addEventListener('click', showHistory);
+    }
+} catch (e) { console.warn('绑定历史按钮失败', e); }
+
+// 初始化
+window.onload = function() { 
+    quizStartTime = Date.now(); // 记录答题开始时间
+    renderQuiz(); 
+    initSidebar(); 
+    initMobileAnswerCardBtn();
+    setupMobileNavigation();
+};
+    </script> 
+</body>
+
+</html>
